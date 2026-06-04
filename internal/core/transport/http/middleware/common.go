@@ -3,8 +3,10 @@ package core_http_middleware
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/Astek27/todoapp/internal/core/logger"
+	core_http_response "github.com/Astek27/todoapp/internal/core/transport/http/response"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )
@@ -46,11 +48,41 @@ func Logger(logger *core_logger.Logger) Middleware {
 func Panic() Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			defer func()  {
-				if p := recover(); p != nil {
+			log := core_logger.FromContext(r.Context())
+			responseHandler := core_http_response.NewHTTPResponseHandler(log, w)
 
+			defer func() {
+				if p := recover(); p != nil {
+					responseHandler.PanicResponse(
+						p,
+						"during handle HTTP request got unexpected panic",
+					)
 				}
 			}()
+			
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func Trace() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log := core_logger.FromContext(r.Context())
+			before := time.Now()
+			
+			log.Debug(
+				"<<< incoming HTTP request",
+				zap.Time("start", before.UTC()),
+			)
+
+			next.ServeHTTP(w, r)
+
+			log.Debug(
+				">>> done HTTP request",
+				zap.Duration("durate", time.Since(before)),
+			)
+
 		})
 	}
 }
