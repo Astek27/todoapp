@@ -24,6 +24,17 @@ func NewServer(config Config, log *core_logger.Logger) *HTTPServer {
 	}
 }
 
+func (h *HTTPServer) RegisterRouters(routers ...APIVersionRouter) {
+	for _, router := range routers {
+		prefix := "api/" + string(router.apiVersion)
+
+		h.mux.Handle(
+			prefix + "/",
+			http.StripPrefix(prefix, router.ServeMux),
+		)
+	}
+}
+
 func (h *HTTPServer) Run(ctx context.Context) error {
 	server := &http.Server{
 		Addr: h.config.Addr,
