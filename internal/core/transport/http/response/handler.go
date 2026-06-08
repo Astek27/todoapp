@@ -2,9 +2,11 @@ package core_http_response
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
+	core_errors "github.com/Astek27/todoapp/internal/core/errors"
 	core_logger "github.com/Astek27/todoapp/internal/core/logger"
 	"go.uber.org/zap"
 )
@@ -24,20 +26,56 @@ func NewHTTPResponseHandler(
 	}
 }
 
+func (h *HTTPResponseHandler) JSONResponse(responseBody any, statusCode int) {
+	h.rw.WriteHeader(statusCode)
+
+	if err := json.NewEncoder(h.rw).Encode(responseBody); err != nil {
+		h.logger.Error("json encode:", zap.Error(err))
+		return
+	}
+	
+}
+
+func (h *HTTPResponseHandler) ErrorResponse(err error, msg string) {
+	var (
+		statusCode int
+		loggerFunc func(string, ...zap.Field)
+	)
+
+	switch {
+	case errors.Is(err, core_errors.ErrBadRequest):
+		statusCode = http.StatusBadRequest
+		loggerFunc = h.logger.Warn
+	case errors.Is(err, core_errors.ErrConflict):
+		statusCode = http.StatusConflict
+		loggerFunc = h.logger.Debug
+	case errors.Is(err, core_errors.ErrNotFound):
+		statusCode = http.StatusNotFound
+		loggerFunc = h.logger.Warn
+	default:
+		statusCode = http.StatusInternalServerError
+		loggerFunc = h.logger.Error
+	}
+
+	loggerFunc(msg, zap.Error(err))
+	
+	h.errorResponse(statusCode, err, msg)
+}
+
 func (h *HTTPResponseHandler) PanicResponse(p any, msg string) {
 	statusCode := http.StatusInternalServerError
 	err := fmt.Errorf("unexpected panic: %v", p)
 
 	h.logger.Error(msg, zap.Error(err))
-	h.rw.WriteHeader(statusCode)
 
+	h.errorResponse(statusCode, err, msg)
+}
+
+func (h *HTTPResponseHandler) errorResponse(statusCode int, err error, msg string) {
 	response := map[string]string {
 		"msg": msg,
 		"err": err.Error(),
 	}
 
-	if err := json.NewEncoder(h.rw).Encode(response); err != nil {
-		h.logger.Error("json encode error:", zap.Error(err))
-	}
-
+	h.JSONResponse(response, statusCode)
 }
