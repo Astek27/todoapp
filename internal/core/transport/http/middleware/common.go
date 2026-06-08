@@ -84,7 +84,6 @@ func Trace() Middleware {
 				zap.Int("status_code", rw.GetStatusCodeOrPanic()),
 				zap.Duration("durate", time.Since(before)),
 			)
-			
 		})
 	}
 }

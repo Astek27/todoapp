@@ -18,12 +18,12 @@ func NewResponseWriter(rw http.ResponseWriter) *ResponseWriter {
 	}
 }
 
-func (rw ResponseWriter) WriteHeader(statusCode int) {
+func (rw *ResponseWriter) WriteHeader(statusCode int) {
 	rw.ResponseWriter.WriteHeader(statusCode)
 	rw.statusCode = statusCode
 }
 
-func (rw ResponseWriter) GetStatusCodeOrPanic() int {
+func (rw *ResponseWriter) GetStatusCodeOrPanic() int {
 	if rw.statusCode == statusCodeUninitialized {
 		panic("status code not initialized")
 	}
