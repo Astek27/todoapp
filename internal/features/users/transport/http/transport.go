@@ -12,7 +12,7 @@ type UsersHTTPHandler struct {
 	usersService UsersService
 }
 
-type UsersService interface{
+type UsersService interface {
 	CreateUser(ctx context.Context, user domain.User) (domain.User, error)
 }
 

@@ -1,0 +1,38 @@
+package core_postgres_pool
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/kelseyhightower/envconfig"
+)
+
+type Config struct {
+	Port     string        `envconfig:"HOST"     required:"true"`
+	Host     string        `envconfig:"PORT"     default:"5432"`	
+	Password string        `envconfig:"PASSWORD" required:"true"`
+	User     string        `envconfig:"USER"     required:"true"`
+	Database string        `envconfig:"DB"       required:"true"`
+	Timeout  time.Duration `envconfig:"TIMEOUT"  required:"true"`
+}
+
+func NewConfig() (Config, error) {
+	var config Config
+
+	if err := envconfig.Process("POSTGRES", &config); err != nil {
+		return Config{}, fmt.Errorf("Config db: %w", err)
+	}
+
+	return config, nil
+}
+
+func NewConfigMust() Config {
+	var config Config
+
+	if err := envconfig.Process("POSTGRES", &config); err != nil {
+		err = fmt.Errorf("Config db: %w", err)
+		panic(err)
+	}
+
+	return config
+}

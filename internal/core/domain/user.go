@@ -1,5 +1,12 @@
 package domain
 
+import (
+	"fmt"
+	"regexp"
+
+	core_errors "github.com/Astek27/todoapp/internal/core/errors"
+)
+
 type User struct {
 	ID int
 	Version int
@@ -30,4 +37,34 @@ func NewUser(
 		FullName: fullName,
 		PhoneNumber: phoneNumber,
 	}
+}
+
+func (d *User) Validate() error {
+	lengthFullName := len([]rune(d.FullName))
+
+	if lengthFullName < 3 || lengthFullName > 100 {
+		return fmt.Errorf(
+			"invalid length full name %d: %w",
+			lengthFullName,
+			core_errors.ErrBadRequest,
+		)
+	}
+
+	if d.PhoneNumber != nil {
+		lengthPhoneNumber := len([]rune(*d.PhoneNumber))
+		if lengthPhoneNumber < 10 || lengthPhoneNumber > 15 {
+			return fmt.Errorf(
+				"invalid length phone number: %d. %w",
+				lengthPhoneNumber,
+				core_errors.ErrBadRequest,
+			)
+		}
+
+		re := regexp.MustCompile(`^+[0-9]+$`)
+
+		if !re.MatchString(*d.PhoneNumber) {
+			return fmt.Errorf("invalid phone number format: %w", core_errors.ErrBadRequest)
+		}
+	}
+	return nil
 }
