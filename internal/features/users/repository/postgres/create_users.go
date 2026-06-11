@@ -15,7 +15,7 @@ func (r *UsersRepository) CreateUser(
 	defer cancel()
 
 	sqlQuery := `
-	INSERT INTO users (full_name, phone_number)
+	INSERT INTO todoapp.users (full_name, phone_number)
 	VALUES ($1, $2)
 	RETURNING id, version, full_name, phone_number;
 	`
