@@ -60,7 +60,7 @@ func (d *User) Validate() error {
 			)
 		}
 
-		re := regexp.MustCompile(`^+[0-9]+$`)
+		re := regexp.MustCompile(`^\+[0-9]+$`)
 
 		if !re.MatchString(*d.PhoneNumber) {
 			return fmt.Errorf("invalid phone number format: %w", core_errors.ErrBadRequest)
