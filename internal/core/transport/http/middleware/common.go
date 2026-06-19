@@ -1,11 +1,10 @@
 package core_http_middleware
 
 import (
-	"context"
 	"net/http"
 	"time"
 
-	"github.com/Astek27/todoapp/internal/core/logger"
+	core_logger "github.com/Astek27/todoapp/internal/core/logger"
 	core_http_response "github.com/Astek27/todoapp/internal/core/transport/http/response"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
@@ -38,9 +37,33 @@ func Logger(logger *core_logger.Logger) Middleware {
 				zap.String("url", r.URL.String()),
 			)
 
-			ctx := context.WithValue(r.Context(), "log", l)
+			ctx := core_logger.ToContext(r.Context(), l)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
+}
+
+func Trace() Middleware {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			log := core_logger.FromContext(r.Context())
+			before := time.Now()
+			rw := core_http_response.NewResponseWriter(w)
+
+			log.Debug(
+				"<<< incoming HTTP request",
+				zap.String("http method", r.Method),
+				zap.Time("start", before.UTC()),
+			)
+
+			next.ServeHTTP(rw, r)
+
+			log.Debug(
+				">>> done HTTP request",
+				zap.Int("status_code", rw.GetStatusCode()),
+				zap.Duration("durate", time.Since(before)),
+			)
 		})
 	}
 }
@@ -59,32 +82,8 @@ func Panic() Middleware {
 					)
 				}
 			}()
-			
+
 			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func Trace() Middleware {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			log := core_logger.FromContext(r.Context())
-			before := time.Now()
-			rw := core_http_response.NewResponseWriter(w)
-			
-			log.Debug(
-				"<<< incoming HTTP request",
-				zap.String("http method", r.Method),
-				zap.Time("start", before.UTC()),
-			)
-
-			next.ServeHTTP(rw, r)
-
-			log.Debug(
-				">>> done HTTP request",
-				zap.Int("status_code", rw.GetStatusCodeOrPanic()),
-				zap.Duration("durate", time.Since(before)),
-			)
 		})
 	}
 }
