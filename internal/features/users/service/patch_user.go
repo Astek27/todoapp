@@ -1,0 +1,30 @@
+package users_service
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/Astek27/todoapp/internal/core/domain"
+)
+
+func (s *UsersService) PatchUser(
+	ctx context.Context,
+	id int,
+	userPatch domain.UserPatch,
+) (domain.User, error) {
+	user, err := s.usersRepository.GetUser(ctx, id)
+	if err != nil {
+		return domain.User{}, fmt.Errorf("Get user from repo: %w", err)
+	}
+
+	if err := user.ApplyPatch(userPatch); err != nil {
+		return domain.User{}, fmt.Errorf("apply patchUser: %w", err)
+	}
+
+	patchedUser, err := s.usersRepository.PatchUser(ctx, id, user)
+	if err != nil {
+		return domain.User{}, fmt.Errorf("patch user: %w", err)
+	}
+	
+	return patchedUser, nil
+}
