@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	core_logger "github.com/Astek27/todoapp/internal/core/logger"
-	core_postgres_pool "github.com/Astek27/todoapp/internal/core/repository/postgres/pool"
+	core_pgx_pool "github.com/Astek27/todoapp/internal/core/repository/postgres/pool/pgx"
 	core_http_middleware "github.com/Astek27/todoapp/internal/core/transport/http/middleware"
 	core_http_server "github.com/Astek27/todoapp/internal/core/transport/http/server"
 	users_postgres_repository "github.com/Astek27/todoapp/internal/features/users/repository/postgres"
@@ -32,8 +32,12 @@ func main() {
 	defer logger.Close()
 
 	logger.Debug("Initiialization postgres connection pool")
-	config := core_postgres_pool.NewConfigMust()
-	pool, err := core_postgres_pool.NewConnectionPool(ctx, config)
+
+	pool, err := core_pgx_pool.NewPool(
+		ctx,
+		core_pgx_pool.NewConfigMust(),
+	)
+
 	if err != nil {
 		logger.Fatal("create connection pool", zap.Error(err))
 	}
@@ -55,10 +59,17 @@ func main() {
 		core_http_middleware.Panic(),
 	)
 	
-	apiVersionRouter := core_http_server.NewAPIVersionRouter(core_http_server.ApiVersion1)
-	apiVersionRouter.RegisterRoutes(usersTransport.Routes()...)
+	apiVersionRouterV1 := core_http_server.NewAPIVersionRouter(core_http_server.ApiVersion1)
+	apiVersionRouterV1.RegisterRoutes(usersTransport.Routes()...)
 	
-	server.RegisterRouters(apiVersionRouter)
+	apiVersionRouterV2 := core_http_server.NewAPIVersionRouter(
+		core_http_server.ApiVersion2,
+		core_http_middleware.Dummy("api v2 middleware"),
+	)
+	apiVersionRouterV2.RegisterRoutes(usersTransport.Routes()...)
+
+	server.RegisterRouters(apiVersionRouterV1)
+	server.RegisterRouters(apiVersionRouterV2)
 
 	if err := server.Run(ctx); err != nil {
 		logger.Error("HTTP server error", zap.Error(err))
