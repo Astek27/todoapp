@@ -2,9 +2,12 @@ package tasks_postgres_repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Astek27/todoapp/internal/core/domain"
+	core_errors "github.com/Astek27/todoapp/internal/core/errors"
+	core_postgres_pool "github.com/Astek27/todoapp/internal/core/repository/postgres/pool"
 )
 
 func (r *TasksRepository) CreateTask(
@@ -43,13 +46,34 @@ func (r *TasksRepository) CreateTask(
 	var taskModel TaskModel
 	if err := row.Scan(
 		&taskModel.ID,
+		&taskModel.Version,
 		&taskModel.Title,
 		&taskModel.Description,
+		&taskModel.Completed,
 		&taskModel.CreatedAt,
 		&taskModel.CompletedAt,
 		&taskModel.AuthorUserID,
 	); err != nil {
-		return domain.Task{}, fmt.Errorf()
+		if errors.Is(err, core_postgres_pool.ErrViolatesForeignKey) {
+			return domain.Task{}, fmt.Errorf(
+				"%v: user with id=%d not found: %w",
+				err,
+				task.AuthorUserID,
+				core_errors.ErrNotFound,
+			)
+		}
 	}
 
+	taskDomain := domain.NewTask(
+		taskModel.ID,
+		taskModel.Version,
+		taskModel.Title,
+		taskModel.Description,
+		taskModel.Completed,
+		taskModel.CreatedAt,
+		taskModel.CompletedAt,
+		taskModel.AuthorUserID,
+	)
+
+	return taskDomain, nil
 }
