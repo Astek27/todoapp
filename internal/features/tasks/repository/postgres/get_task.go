@@ -10,38 +10,17 @@ import (
 	core_postgres_pool "github.com/Astek27/todoapp/internal/core/repository/postgres/pool"
 )
 
-func (r *TasksRepository) CreateTask(
-	ctx context.Context,
-	task domain.Task,
-) (domain.Task, error) {
+func(r *TasksRepository) GetTask(ctx context.Context, id int) (domain.Task, error) {
 	ctx, cancel := context.WithTimeout(ctx, r.pool.OpTimeout())
 	defer cancel()
 
 	query := `
-	INSERT INTO todoapp.tasks
-	(title, description, completed, created_at, completed_at, author_user_id)
-	VALUES ($1, $2, $3, $4, $5, $6)
-	RETURNING
-		id,
-		version,
-		title,
-		description,
-		completed,
-		created_at,
-		completed_at,
-		author_user_id
-	;
+	SELECT id, version, title, description, completed, created_at, completed_at, author_user_id
+	FROM todoapp.tasks
+	WHERE id=$1;
 	`
-	row := r.pool.QueryRow(
-		ctx,
-		query,
-		task.Title,
-		task.Description,
-		task.Completed,
-		task.CreatedAt,
-		task.CompletedAt,
-		task.AuthorUserID,
-	)
+
+	row := r.pool.QueryRow(ctx, query, id)
 
 	var taskModel TaskModel
 	if err := row.Scan(
@@ -54,14 +33,14 @@ func (r *TasksRepository) CreateTask(
 		&taskModel.CompletedAt,
 		&taskModel.AuthorUserID,
 	); err != nil {
-		if errors.Is(err, core_postgres_pool.ErrViolatesForeignKey) {
+		if errors.Is(err, core_postgres_pool.ErrNoRows) {
 			return domain.Task{}, fmt.Errorf(
-				"%v: user with id=%d not found: %w",
-				err,
-				task.AuthorUserID,
+				"task with id=%d: %w",
+				id,
 				core_errors.ErrNotFound,
 			)
 		}
+		return domain.Task{}, fmt.Errorf("scan error: %w", err)
 	}
 
 	taskDomain := taskDomainFromModel(taskModel)
