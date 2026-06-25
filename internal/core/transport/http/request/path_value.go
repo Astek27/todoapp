@@ -11,7 +11,7 @@ import (
 func GetIntPathValue(r *http.Request, key string) (int, error) {
 	pathValue := r.PathValue(key)
 	if pathValue == "" {
-		return 0, fmt.Errorf("not path value key=%s: %w", core_errors.ErrBadRequest)
+		return 0, fmt.Errorf("not path value key=%s: %w", key, core_errors.ErrBadRequest)
 	}
 
 	pathValueInt, err := strconv.Atoi(pathValue)
