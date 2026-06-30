@@ -9,7 +9,7 @@ import (
 	"github.com/Astek27/todoapp/docs"
 	core_logger "github.com/Astek27/todoapp/internal/core/logger"
 	core_http_middleware "github.com/Astek27/todoapp/internal/core/transport/http/middleware"
-	"github.com/swaggo/http-swagger"
+	"github.com/swaggo/http-swagger/v2"
 	"go.uber.org/zap"
 )
 
@@ -50,6 +50,7 @@ func (s *HTTPServer) RegisterSwagger() {
 		"/swagger/",
 		httpSwagger.Handler(
 			httpSwagger.URL("/swagger/doc.json"),
+			httpSwagger.DefaultModelsExpandDepth(-1),
 		),
 	)
 
