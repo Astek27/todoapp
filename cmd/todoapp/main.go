@@ -22,6 +22,9 @@ import (
 	users_postgres_repository "github.com/Astek27/todoapp/internal/features/users/repository/postgres"
 	users_service "github.com/Astek27/todoapp/internal/features/users/service"
 	users_transport_http "github.com/Astek27/todoapp/internal/features/users/transport/http"
+	web_fs_repository "github.com/Astek27/todoapp/internal/features/web/repository/file_system"
+	web_service "github.com/Astek27/todoapp/internal/features/web/service"
+	web_transport_http "github.com/Astek27/todoapp/internal/features/web/transport/http"
 	"go.uber.org/zap"
 
 	_ "github.com/Astek27/todoapp/docs"
@@ -78,6 +81,11 @@ func main() {
 	statisticsService := statistics_service.NewStatisticsService(statisticsRepository)
 	statisticsTransport := statistics_http_transport.NewStatisticsHTTPHandler(statisticsService)
 
+	logger.Debug("start feature", zap.String("feature", "web"))
+	webRepository := web_fs_repository.NewWebRepository()
+	webService := web_service.NewWebService(webRepository)
+	webTransport := web_transport_http.NewWebHTTPHandler(webService)
+
 	logger.Debug("create server")
 	
 	server := core_http_server.NewServer(
@@ -100,7 +108,7 @@ func main() {
 	// 	core_http_middleware.Dummy("api v2 middleware"),
 	// )
 	// apiVersionRouterV2.RegisterRoutes(usersTransport.Routes()...)
-
+	server.RegisterRoutes(webTransport.Routes()...)
 	server.RegisterRouters(apiVersionRouterV1)
 	server.RegisterSwagger()
 	// server.RegisterRouters(apiVersionRouterV2)
